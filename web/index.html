@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>yatt</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="root">
+    <section class="col">
+      <header>
+        <button type="button" id="planBtn" title="Plan work (P)">+</button>
+        <span>Planned</span>
+      </header>
+      <div id="planned" class="pane planned"></div>
+    </section>
+
+    <section class="col">
+      <header>
+        <button type="button" id="doBtn" title="Do work (D)">+</button>
+        <span>Done</span>
+      </header>
+      <div id="done" class="pane"></div>
+    </section>
+
+    <section class="col side">
+      <input type="date" id="date" aria-label="Date">
+      <button type="button" id="reportBtn">Report</button>
+    </section>
+  </main>
+
+  <!-- Plan / do / edit work -->
+  <dialog id="workDialog">
+    <form id="workForm" autocomplete="off">
+      <h2 id="workTitle"></h2>
+      <div class="row">
+        <label>Start time <input id="startTime" class="num" size="5" readonly autofocus></label>
+        <span class="grow"></span>
+        <label>Duration (minutes) <input id="duration" class="num" size="4" readonly></label>
+      </div>
+      <div class="row">
+        <label class="grow-label">Name <input id="name" class="grow"></label>
+      </div>
+      <div class="row">
+        <label class="grow-label">Tags <input id="tags" class="grow"></label>
+      </div>
+      <div class="row end">
+        <select id="category" aria-label="Category"></select>
+        <button type="button" id="addCategory" tabindex="-1" title="Add category">+</button>
+      </div>
+      <div class="row end buttons">
+        <button type="button" id="cancelBtn" tabindex="-1">Cancel</button>
+        <button type="button" id="nextBtn">Next</button>
+        <button type="submit" id="okBtn">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add category -->
+  <dialog id="catDialog">
+    <form id="catForm" autocomplete="off">
+      <h2>Add category</h2>
+      <div class="row"><input id="catName" class="grow" placeholder="Category name..." autofocus></div>
+      <div class="row end buttons">
+        <button type="button" id="catCancel">Cancel</button>
+        <button type="submit" id="catOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Report -->
+  <dialog id="reportDialog">
+    <div class="row end report-controls">
+      <label>From <input type="date" id="repFrom"></label>
+      <label>To <input type="date" id="repTo"></label>
+      <button type="button" id="repClose">Close</button>
+    </div>
+    <div id="chart"></div>
+    <div id="tip" hidden></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
