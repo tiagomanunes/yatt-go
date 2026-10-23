@@ -42,6 +42,11 @@ func main() {
 		log.Printf("backup failed: %v", err)
 	}
 
+	cfg, err := loadConfig(filepath.Join(*dataDir, "config.json"))
+	if err != nil {
+		log.Fatal("could not load config: %v", err)
+	}
+
 	db, err := openDB(dbPath)
 	if err != nil {
 		log.Fatalf("could not open database %s: %v", dbPath, err)
@@ -51,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	srv := newServer(db, *addr, http.FileServerFS(sub))
+	srv := newServer(db, cfg, *addr, http.FileServerFS(sub))
 
 	httpSrv := &http.Server{
 		Addr:              *addr,

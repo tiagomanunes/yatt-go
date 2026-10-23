@@ -4,6 +4,8 @@
   --fg: #1c1c1c;
   --muted: #6b6b6b;
   --entry-border: #888844;
+  --no-ticket-done: #ff9f00;
+  --no-ticket-planned: #f2e28c;
   --grid: #dcdcdc;
   --tip-bg: #fff8d6;
   --planned: #f3622d;
@@ -50,6 +52,7 @@ body {
 .pane.planned { min-width: 200px; }
 
 .entry {
+  position: relative;
   width: 150px;
   box-sizing: border-box;
   border: 1px solid var(--entry-border);
@@ -58,9 +61,23 @@ body {
   cursor: default;
   user-select: none;
 }
+/* Entries whose tags lack a Jira ticket key: done ones must have one. */
+.entry.done.no-ticket { border: 2px solid var(--no-ticket-done); }
+.entry.planned.no-ticket { border: 2px solid var(--no-ticket-planned); }
 .entry .row { display: flex; justify-content: space-between; gap: 6px; }
 .entry .cat { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .entry .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entry .jira {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  line-height: 0;
+  color: var(--muted);
+  cursor: pointer;
+}
+.entry .jira:hover { color: var(--fg); }
+
+#total { margin-top: 4px; font-variant-numeric: tabular-nums; }
 
 dialog {
   border: 1px solid var(--grid);

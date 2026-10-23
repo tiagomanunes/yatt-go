@@ -46,6 +46,16 @@ window.addEventListener('unhandledrejection', (e) => {
 
 const dateInput = $('#date');
 const panes = { planned: $('#planned'), done: $('#done') };
+const totalEl = $('#total');
+let doneActs = []; // the done entries shown, for the total
+
+// Categories that are not work: left out of the total
+const NOT_WORK_CATEGORIES = ['Break'];
+// Categories that need no Jira ticket: never flagged for missing one
+const NO_TICKET_CATEGORIES = ['Break'];
+const JIRA_KEY = /\b[A-Z]+-[0-9]+\b/;
+
+let jiraUrl = ''; // from config.json; empty means no ticket links
 
 dateInput.value = fmtDate(new Date());
 dateInput.addEventListener('change', loadWork);
@@ -60,17 +70,39 @@ async function loadWork() {
   if (date !== dateInput.value) return; // the date changed while loading
   panes.planned.replaceChildren(...planned.map(renderEntry));
   panes.done.replaceChildren(...done.map(renderEntry));
+  doneActs = done;
+  updateTotal();
 }
+
+function updateTotal() {
+  const mins = doneActs
+    .filter((a) => !NOT_WORK_CATEGORIES.includes(a.category))
+    .reduce((sum, a) => sum + a.duration, 0);
+  totalEl.textContent = `Worked: ${Math.floor(mins / 60)}h ${pad(mins % 60)}m`;
+}
+
+const LINK_ICON = '<svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true">'
+  + '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+  + 'd="M6.5 9.5l3-3M7 4.5l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7L10.7 8.2M9 11.5l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7L5.3 7.8"/></svg>';
 
 function renderEntry(act) {
   const el = document.createElement('div');
-  el.className = 'entry';
-  el.innerHTML = '<div class="row"><span class="start"></span><span class="cat"></span></div><div class="name"></div>';
+  el.className = `entry ${act.kind}`;
+  el.innerHTML = '<div class="row"><span class="start"></span><span class="cat"></span></div><div class="name"></div>'
+    + `<a class="jira" target="_blank" rel="noopener noreferrer">${LINK_ICON}</a>`;
   const start = el.querySelector('.start');
   const cat = el.querySelector('.cat');
   const name = el.querySelector('.name');
+  const jira = el.querySelector('.jira');
 
   const refresh = () => {
+    const key = act.tags.match(JIRA_KEY)?.[0];
+    el.classList.toggle('no-ticket', !key && !NO_TICKET_CATEGORIES.includes(act.category));
+    jira.hidden = !key || !jiraUrl;
+    if (!jira.hidden) {
+      jira.href = `${jiraUrl}/browse/${key}`;
+      jira.title = `Open ${key} in Jira`;
+    }
     start.textContent = act.startTime;
     if (act.duration < 30) {
       cat.textContent = act.name; // too short for two lines: show the name only
@@ -103,6 +135,7 @@ function renderEntry(act) {
       });
       Object.assign(act, updated); // updated in place: no re-sort until the next load
       refresh();
+      updateTotal();
     } finally {
       opening = false;
     }
@@ -121,7 +154,7 @@ async function planWork() {
   opening = true;
   let again = false;
   try {
-    const { time } = await api.get(`/api/earliest?date=${dateInput.value}`);
+    const { time } = await api.get(`/api/earliest?kind=planned&date=${dateInput.value}`);
     const r = await openWorkDialog({ title: 'Plan work', startTime: time, duration: 60, allowNext: true });
     if (!r) return;
     const created = await api.post('/api/activities', {
@@ -140,16 +173,16 @@ async function doWork() {
   if (!dateInput.value || opening) return;
   opening = true;
   try {
-    // Next 15-minute boundary strictly after now, as in the old app.
-    const now = new Date();
-    const startMins = now.getHours() * 60 + 15 * (Math.floor(now.getMinutes() / 15) + 1);
-    const r = await openWorkDialog({ title: 'Do work', startTime: fmtTime(startMins), duration: 60 });
+    const { time } = await api.get(`/api/earliest?kind=done&date=${dateInput.value}`);
+    const r = await openWorkDialog({ title: 'Do work', startTime: time, duration: 60 });
     if (!r) return;
     const created = await api.post('/api/activities', {
       kind: 'done', date: dateInput.value,
       startTime: r.startTime, duration: r.duration, name: r.name, tags: r.tags, categoryId: r.categoryId,
     });
     panes.done.appendChild(renderEntry(created));
+    doneActs.push(created);
+    updateTotal();
   } finally {
     opening = false;
   }
@@ -447,4 +480,5 @@ function drawChart(data) {
 
 // ---- go ---------------------------------------------------------------------
 
-loadWork();
+api.get('/api/config').then((cfg) => { jiraUrl = cfg.jiraUrl; }).finally(loadWork);
+

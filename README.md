@@ -21,6 +21,14 @@ Flags:
 
 A timestamped copy of the database is written to `backup/` on every start.
 
+## Config
+
+Optional `config.json` in the data directory (read on start):
+
+    {"jiraUrl": "https://yourcompany.atlassian.net"}
+
+`jiraUrl` enables the link icon on entries whose tags contain a ticket key, e.g. `ABC-123`; it opens `<jiraUrl>/browse/ABC-123`.
+
 ## Keyboard (as in the old app)
 
 - `P` plan work, `D` do work (when no dialog is open)
@@ -31,6 +39,7 @@ A timestamped copy of the database is written to `backup/` on every start.
 ## Layout
 
     main.go   flags, backup, server start/stop
+    config.go config.json loading 
     db.go     schema, default categories, backup
     api.go    JSON API + localhost guard
     web/      index.html, style.css, app.js (embedded into the binary)

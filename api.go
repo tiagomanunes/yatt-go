@@ -15,16 +15,18 @@ import (
 
 type server struct {
 	db           *sql.DB
+	cfg          Config
 	allowedHosts map[string]bool
 	static       http.Handler
 }
 
-func newServer(db *sql.DB, addr string, static http.Handler) *server {
-	return &server{db: db, allowedHosts: hostsFor(addr), static: static}
+func newServer(db *sql.DB, cfg Config, addr string, static http.Handler) *server {
+	return &server{db: db, cfg: cfg, allowedHosts: hostsFor(addr), static: static}
 }
 
 func (s *server) routes() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/config", s.config)
 	mux.HandleFunc("GET /api/categories", s.listCategories)
 	mux.HandleFunc("POST /api/categories", s.createCategory)
 	mux.HandleFunc("GET /api/activities", s.listActivities)
@@ -134,6 +136,12 @@ func (s *server) categoryExists(id int64) (bool, error) {
 		return false, nil
 	}
 	return err == nil, err
+}
+
+// ---- config ---------------------------------------------------------------
+
+func (s *server) config(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.cfg)
 }
 
 // ---- categories -----------------------------------------------------------
@@ -325,25 +333,27 @@ func (s *server) updateActivity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, a)
 }
 
-// earliest returns the default start time for newly planned work: the end of
-// the planned item with the latest start time that day, or 08:00 if none.
+const dayStart = "08:30"
+
+// earliest returns the default start time for new work of a kind: the end of
+// the item of that kind with the latest start time that day, or dayStart if none
 func (s *server) earliest(w http.ResponseWriter, r *http.Request) {
-	date := r.URL.Query().Get("date")
-	if !validDate(date) {
-		writeErr(w, http.StatusBadRequest, "date (yyyy-MM-dd) is required")
+	kind, date := r.URL.Query().Get("kind"), r.URL.Query().Get("date")
+	if (kind != "planned" && kind != "done") || !validDate(date) {
+		writeErr(w, http.StatusBadRequest, "kind (planned|done) and date (yyy-MM-dd) are required")
 		return
 	}
 	var start string
 	var duration int
 	err := s.db.QueryRow(
-		`SELECT start_time, duration FROM activity WHERE kind = 'planned' AND date = ? ORDER BY start_time DESC, id DESC LIMIT 1`,
-		date).Scan(&start, &duration)
+		`SELECT start_time, duration FROM activity WHERE kind = ? AND date = ? ORDER BY start_time DESC, id DESC LIMIT 1`,
+		kind, date).Scan(&start, &duration)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		writeJSON(w, http.StatusOK, map[string]string{"time": "08:00"})
+		writeJSON(w, http.StatusOK, map[string]string{"time": dayStart})
 	case err != nil:
 		log.Printf("earliest: %v", err)
-		writeJSON(w, http.StatusOK, map[string]string{"time": "08:00"})
+		writeJSON(w, http.StatusOK, map[string]string{"time": dayStart})
 	default:
 		writeJSON(w, http.StatusOK, map[string]string{"time": formatMinutes(minutesOf(start) + duration)})
 	}
