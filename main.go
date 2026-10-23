@@ -44,7 +44,7 @@ func main() {
 
 	cfg, err := loadConfig(filepath.Join(*dataDir, "config.json"))
 	if err != nil {
-		log.Fatal("could not load config: %v", err)
+		log.Fatalf("could not load config: %v", err)
 	}
 
 	db, err := openDB(dbPath)
