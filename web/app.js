@@ -57,6 +57,17 @@ const JIRA_KEY = /\b[A-Z]+-[0-9]+\b/;
 
 let jiraUrl = ''; // from config.json; empty means no ticket links
 
+$('#dateBackBtn').addEventListener('click', () => moveDate(-1));
+$('#dateFwdBtn').addEventListener('click', () => moveDate(1));
+
+function moveDate(amount) {
+  // 'T00:00' makes it parse as local midnight; a bare 'YYYY-MM-DD' is UTC
+  const newDate = new Date(`${dateInput.value}T00:00`);
+  newDate.setDate(newDate.getDate() + amount);
+  dateInput.value = fmtDate(newDate);
+  loadWork();
+}
+
 dateInput.value = fmtDate(new Date());
 dateInput.addEventListener('change', loadWork);
 

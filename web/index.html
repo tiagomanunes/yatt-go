@@ -25,7 +25,11 @@
     </section>
 
     <section class="col side">
-      <input type="date" id="date" aria-label="Date">
+      <div class="row">
+        <button type="button" id="dateBackBtn">&lt;</button>
+        <input type="date" id="date" aria-label="Date">
+        <button type="button" id="dateFwdBtn">&gt;</button>
+      </div>
       <button type="button" id="reportBtn">Report</button>
       <div id="total" title="Time worked: all done entries except breaks"></div>
     </section>
